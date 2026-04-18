@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package cache;
+
+option go_package = "cxcdn/internal/cache";
+
+// CacheFile is the top-level container for persisted cache entries.
+message CacheFile {
+  repeated CacheEntry entries = 1;
+}
+
+// CacheEntry represents a single key-value pair with expiration.
+message CacheEntry {
+  string key = 1;
+  int64  expiration_ns = 2; // Unix nano timestamp, 0 = no expiry
+
+  // Value type discriminator — exactly one should be set.
+  oneof value {
+    string       string_value   = 10;
+    bool         bool_value     = 11;
+    StringList   string_list    = 12;
+    FileContent  file_content   = 13;
+    GitHubTree   github_tree    = 14;
+    NpmPackage   npm_package    = 15;
+    bytes        bytes_value    = 16;
+  }
+}
+
+// StringList is a repeated string field wrapper for use in oneof.
+message StringList {
+  repeated string items = 1;
+}
+
+// FileContent stores the [2]string used by gh:file:* entries.
+message FileContent {
+  string content      = 1;
+  string content_type = 2;
+}
+
+// GitHubTree mirrors the gh.GitHubTree struct.
+message GitHubTree {
+  string sha = 1;
+  repeated GitHubTreeItem items = 2;
+  bool truncated = 3;
+}
+
+// GitHubTreeItem mirrors the gh.GitHubTreeItem struct.
+message GitHubTreeItem {
+  string path = 1;
+  string mode = 2;
+  string type = 3; // "blob" or "tree"
+  string sha  = 4;
+  int64  size = 5;
+}
+
+// NpmPackage mirrors the registry.NpmPackage struct.
+message NpmPackage {
+  string name = 1;
+  map<string, NpmVersion> versions = 2;
+  map<string, string> dist_tags = 3;
+}
+
+// NpmVersion mirrors the registry.NpmVersion struct.
+message NpmVersion {
+  string name    = 1;
+  string version = 2;
+  string tarball = 3;
+}
